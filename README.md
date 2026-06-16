@@ -17,40 +17,7 @@ data pipeline → SQL analysis → interactive BI dashboard.
 
 ---
 
-## How to Run
 
-### 1. Install dependencies
-```bash
-pip install pandas numpy streamlit plotly
-```
-
-### 2. Generate the dataset + load to SQLite
-```bash
-python 1_generate_dataset.py
-```
-This creates:
-- `pharma_sales_data.csv` — 1,200+ rows of pharma sales data
-- `pharma_sales.db` — SQLite database with sales + dim_drugs tables
-
-### 3. Run SQL business analysis
-```bash
-python 2_sql_analysis.py
-```
-Answers 8 real business questions:
-- Revenue by drug
-- YoY growth (using window functions)
-- Regional performance + % share
-- Seasonal trends
-- Channel mix and margin
-- Top segments
-- Marketing ROI
-- New drug ramp-up
-
-### 4. Launch the dashboard
-```bash
-streamlit run 3_streamlit_dashboard.py
-```
-Open http://localhost:8501 in your browser.
 
 ---
 
