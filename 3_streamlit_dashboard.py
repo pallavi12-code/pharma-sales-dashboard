@@ -1,73 +1,14 @@
-"""
-Pharma Sales Analytics Dashboard
-Interactive BI dashboard for pharma sales data.
-Deployed on Streamlit Cloud — self-contained, no external DB needed.
-"""
+"""Interactive dashboard for the project's synthetic pharmaceutical sales data."""
 
 import streamlit as st
 import pandas as pd
-import numpy as np
-import sqlite3
 import plotly.express as px
-import plotly.graph_objects as go
-from plotly.subplots import make_subplots
-
-# ── Inline data generation (runs once, cached) ────────────────────────────────
-
-def generate_pharma_data():
-    np.random.seed(42)
-    DRUGS = {
-        "Oncovir":    {"category": "Oncology",     "base_price": 4200, "launch_year": 2019},
-        "Cardilux":   {"category": "Cardiology",   "base_price": 980,  "launch_year": 2018},
-        "Neuromab":   {"category": "Neurology",    "base_price": 3100, "launch_year": 2020},
-        "Diabequil":  {"category": "Diabetes",     "base_price": 560,  "launch_year": 2017},
-        "Immuflex":   {"category": "Immunology",   "base_price": 2800, "launch_year": 2021},
-        "Rheumastat": {"category": "Immunology",   "base_price": 1750, "launch_year": 2019},
-        "Pulmocare":  {"category": "Respiratory",  "base_price": 890,  "launch_year": 2020},
-        "Hepazone":   {"category": "Hepatology",   "base_price": 2100, "launch_year": 2018},
-    }
-    REGIONS = {
-        "North India":   {"multiplier": 1.15, "cities": ["Delhi", "Chandigarh", "Lucknow", "Jaipur"]},
-        "South India":   {"multiplier": 1.25, "cities": ["Hyderabad", "Chennai", "Bengaluru", "Kochi"]},
-        "West India":    {"multiplier": 1.20, "cities": ["Mumbai", "Pune", "Ahmedabad", "Surat"]},
-        "East India":    {"multiplier": 0.90, "cities": ["Kolkata", "Bhubaneswar", "Patna", "Ranchi"]},
-        "Central India": {"multiplier": 0.85, "cities": ["Nagpur", "Bhopal", "Raipur", "Indore"]},
-    }
-    CHANNELS = ["Hospital", "Retail Pharmacy", "Online Pharmacy", "Clinic"]
-    rows = []
-    for year in [2021, 2022, 2023, 2024]:
-        for quarter in ["Q1", "Q2", "Q3", "Q4"]:
-            for drug_name, drug_info in DRUGS.items():
-                if year < drug_info["launch_year"]:
-                    continue
-                for region, reg_info in REGIONS.items():
-                    city = np.random.choice(reg_info["cities"])
-                    channel = np.random.choice(CHANNELS, p=[0.40, 0.30, 0.20, 0.10])
-                    base_units = np.random.randint(800, 3000)
-                    yoy_growth = (1.12 ** (year - 2021))
-                    seasonal = 1.15 if quarter == "Q4" else (0.92 if quarter == "Q1" else 1.0)
-                    units_sold = int(base_units * yoy_growth * seasonal * reg_info["multiplier"])
-                    unit_price = drug_info["base_price"] * np.random.uniform(0.95, 1.05)
-                    revenue = round(units_sold * unit_price, 2)
-                    cogs = round(revenue * np.random.uniform(0.35, 0.50), 2)
-                    gross_profit = round(revenue - cogs, 2)
-                    mkt_spend = round(revenue * np.random.uniform(0.08, 0.18), 2)
-                    rows.append({
-                        "year": year, "quarter": quarter,
-                        "period": f"{year}-{quarter}",
-                        "drug_name": drug_name, "category": drug_info["category"],
-                        "region": region, "city": city, "channel": channel,
-                        "units_sold": units_sold, "unit_price": round(unit_price, 2),
-                        "revenue": revenue, "cogs": cogs,
-                        "gross_profit": gross_profit, "mkt_spend": mkt_spend,
-                        "gross_margin_pct": round((gross_profit / revenue) * 100, 2),
-                    })
-    return pd.DataFrame(rows)
+from analytics import generate_pharma_data
 
 # ── Page config ───────────────────────────────────────────────────────────────
 
 st.set_page_config(
-    page_title="Pharma Sales Analytics | GATE Demo",
+    page_title="Synthetic Pharma Sales Analytics",
     page_icon="💊",
     layout="wide",
     initial_sidebar_state="expanded",
@@ -103,15 +44,19 @@ st.markdown("""
 # ── Load data ─────────────────────────────────────────────────────────────────
 
 @st.cache_data
-def load_data():
-    return generate_pharma_data()
+def load_data(seed: int = 42) -> pd.DataFrame:
+    return generate_pharma_data(seed)
 
-df = load_data()
+try:
+    df = load_data()
+except (TypeError, ValueError) as exc:
+    st.error(f"Unable to generate dashboard data: {exc}")
+    st.stop()
 
 # ── Sidebar filters ───────────────────────────────────────────────────────────
 
-st.sidebar.image("https://upload.wikimedia.org/wikipedia/commons/thumb/a/a4/Roche_Logo.svg/320px-Roche_Logo.svg.png", width=120)
 st.sidebar.title("Filters")
+st.sidebar.caption("Synthetic data demo")
 
 years = sorted(df["year"].unique())
 sel_years = st.sidebar.multiselect("Year", years, default=years)
@@ -126,7 +71,7 @@ channels = sorted(df["channel"].unique())
 sel_channels = st.sidebar.multiselect("Channel", channels, default=channels)
 
 st.sidebar.markdown("---")
-st.sidebar.caption("Pharma Sales Analytics Dashboard\nBuilt with Python · SQL · Streamlit\nPortfolio project — Rinki Pallavi")
+st.sidebar.caption("Built with Python, SQL, and Streamlit. This dataset is simulated and is not real pharmaceutical market data.")
 
 # ── Filter data ───────────────────────────────────────────────────────────────
 
@@ -144,8 +89,8 @@ if fdf.empty:
 
 # ── Header ────────────────────────────────────────────────────────────────────
 
-st.title("💊 Pharma Sales Analytics Dashboard")
-st.markdown("**Roche GATE — Analytics Center of Excellence** | India Portfolio View")
+st.title("💊 Synthetic Pharma Sales Analytics")
+st.markdown("Interactive analysis of simulated pharmaceutical sales records. Results are for demonstration only.")
 st.markdown("---")
 
 # ── KPI cards ─────────────────────────────────────────────────────────────────
@@ -177,7 +122,7 @@ tab1, tab2, tab3, tab4 = st.tabs(["📈 Revenue Trends", "💊 Drug Performance"
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 with tab1:
     st.subheader("Revenue Trends Over Time")
-    st.markdown('<div class="insight-box">💡 <b>Stakeholder insight:</b> Q4 consistently outperforms other quarters due to year-end prescription fill-ups before insurance benefit resets.</div>', unsafe_allow_html=True)
+    st.markdown('<div class="insight-box">💡 <b>Dataset note:</b> The generator applies a Q4 seasonal multiplier; this pattern is synthetic and should not be interpreted as a market fact.</div>', unsafe_allow_html=True)
 
     col1, col2 = st.columns(2)
 
@@ -221,7 +166,7 @@ with tab1:
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 with tab2:
     st.subheader("Drug Portfolio Performance")
-    st.markdown('<div class="insight-box">💡 <b>Stakeholder insight:</b> Margin and revenue together tell the story — a high-revenue, low-margin drug may be under more pricing pressure than a niche high-margin product.</div>', unsafe_allow_html=True)
+    st.markdown('<div class="insight-box">💡 <b>Interpretation:</b> Compare revenue and margin together when exploring the simulated portfolio.</div>', unsafe_allow_html=True)
 
     drug_perf = fdf.groupby(["drug_name", "category"]).agg(
         revenue_M=("revenue", lambda x: x.sum() / 1e6),
@@ -268,7 +213,7 @@ with tab2:
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 with tab3:
     st.subheader("Regional Performance")
-    st.markdown('<div class="insight-box">💡 <b>Stakeholder insight:</b> South and West India drive disproportionate revenue due to higher hospital density and purchasing power. East/Central are growth opportunities.</div>', unsafe_allow_html=True)
+    st.markdown("<div class='insight-box'>💡 <b>Interpretation:</b> Regional differences reflect the generator's configured multipliers, not observed market conditions.</div>", unsafe_allow_html=True)
 
     reg_perf = fdf.groupby("region").agg(
         revenue_M=("revenue", lambda x: x.sum() / 1e6),
@@ -330,7 +275,7 @@ with tab4:
         fig.add_hline(y=0, line_dash="dash", line_color="gray")
         fig.update_layout(plot_bgcolor="white", paper_bgcolor="white", xaxis_tickangle=30)
         st.plotly_chart(fig, use_container_width=True)
-        st.markdown('<div class="insight-box">📝 Growth above 0% = gaining momentum. Negative growth = needs investigation — pricing issue, new competitor, or market saturation.</div>', unsafe_allow_html=True)
+        st.markdown('<div class="insight-box">📝 Growth above 0% indicates an increase versus the previous simulated year.</div>', unsafe_allow_html=True)
 
     elif analysis == "Marketing ROI ranking":
         roi = fdf.groupby("drug_name").agg(
@@ -345,7 +290,7 @@ with tab4:
                      color="roi", color_continuous_scale="Greens")
         fig.update_layout(plot_bgcolor="white", paper_bgcolor="white", xaxis_tickangle=30)
         st.plotly_chart(fig, use_container_width=True)
-        st.markdown('<div class="insight-box">📝 A ratio of 6x means every ₹1 spent on marketing returns ₹6 in revenue. This helps justify or cut marketing budgets per product.</div>', unsafe_allow_html=True)
+        st.markdown('<div class="insight-box">📝 This is a descriptive revenue-to-spend ratio on synthetic data, not causal marketing ROI.</div>', unsafe_allow_html=True)
 
     elif analysis == "New drug ramp-up (Immuflex)":
         ramp = fdf[fdf["drug_name"] == "Immuflex"].groupby(["year", "quarter"])["revenue"].sum().reset_index()
@@ -358,7 +303,7 @@ with tab4:
                       color_discrete_sequence=["#0066cc"])
         fig.update_layout(plot_bgcolor="white", paper_bgcolor="white", xaxis_tickangle=45)
         st.plotly_chart(fig, use_container_width=True)
-        st.markdown('<div class="insight-box">📝 A healthy ramp shows exponential-ish growth in years 1–2 then stabilization. A flat curve post-launch signals a go-to-market problem.</div>', unsafe_allow_html=True)
+        st.markdown('<div class="insight-box">📝 This view shows the simulated launch trajectory for Immuflex.</div>', unsafe_allow_html=True)
 
     elif analysis == "Top 10 drug × region segments":
         seg = fdf.groupby(["drug_name", "region"])["revenue"].sum().reset_index()
@@ -371,7 +316,7 @@ with tab4:
                      color="revenue_M", color_continuous_scale="Blues")
         fig.update_layout(height=400, plot_bgcolor="white", paper_bgcolor="white")
         st.plotly_chart(fig, use_container_width=True)
-        st.markdown('<div class="insight-box">📝 These are your high-value segments — the 20% of drug-region combos generating 80% of revenue. Sales leadership prioritizes these for territory planning.</div>', unsafe_allow_html=True)
+        st.markdown('<div class="insight-box">📝 These are the highest-revenue segments in the filtered synthetic dataset.</div>', unsafe_allow_html=True)
 
     # Raw data explorer
     st.markdown("---")
