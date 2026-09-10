@@ -1,78 +1,76 @@
-# Pharma Sales Analytics Dashboard
+# Synthetic Pharma Sales Analytics
 
-An end-to-end analytics project that turns synthetic pharmaceutical sales data into SQL-driven business insights and an interactive Streamlit dashboard.
+An end-to-end analytics project that generates **simulated pharmaceutical sales data**, stores it in SQLite, answers business questions with SQL, and presents the results in Streamlit. The dataset is synthetic and does not represent real pharmaceutical market data, companies, products, or business impact.
 
-## Overview
-
-The project follows a simple analytics workflow:
-
-**Data generation → relational storage → SQL analysis → dashboard → business insights**
-
-It is designed to demonstrate practical skills in Python data processing, relational analytics, SQL, and BI-style application development.
-
-## What it answers
-
-- Which products generate the most revenue?
-- How does revenue change year over year?
-- Which regions contribute the most sales?
-- Is there seasonal concentration in Q4?
-- Which sales channels produce stronger margins?
-- Which product-region segments are most valuable?
-- Which products show stronger marketing ROI?
-- How does a newly launched product ramp over time?
-
-## Tech stack
-
-| Layer | Technology |
-|---|---|
-| Data generation | Python, Pandas, NumPy |
-| Storage | SQLite |
-| Analysis | SQL, CTEs, aggregations, window functions |
-| Dashboard | Streamlit, Plotly |
-
-## Project structure
+## Architecture
 
 ```text
-.
-├── 1_generate_dataset.py
-├── 2_sql_analysis.py
-├── 3_streamlit_dashboard.py
-├── pharma_sales_data.csv
-├── requirements.txt
-└── README.md
+analytics.py
+  ├── deterministic data generator
+  ├── CSV + SQLite persistence
+  └── read-only SQL helper
+        ↓
+1_generate_dataset.py → data/pharma_sales_data.csv
+                       → data/pharma_sales.db
+        ↓
+2_sql_analysis.py     → eight analytical SQL result sets
+        ↓
+3_streamlit_dashboard.py → interactive filtered charts and KPIs
 ```
 
-## Dataset
+The dashboard generates its own in-memory copy by default, so it can run on Streamlit hosting without a checked-in database. The command-line workflow writes generated artifacts under `data/`; those files are ignored by Git.
 
-The repository uses a synthetic dataset designed for analytics practice rather than real pharmaceutical data. It contains 1,200+ records spanning 2021–2024, multiple products and therapeutic areas, Indian regions/cities, sales channels, revenue, cost, margin, and marketing-spend fields.
-
-## Run locally
+## Setup
 
 ```bash
-git clone https://github.com/pallavi12-code/pharma-sales-dashboard.git
-cd pharma-sales-dashboard
 python -m venv .venv
-source .venv/bin/activate       # Windows: .venv\Scripts\activate
-pip install -r requirements.txt
-python 1_generate_dataset.py
+source .venv/bin/activate        # Windows: .venv\Scripts\activate
+python -m pip install -r requirements.txt
+```
+
+## Reproducible data generation
+
+The default seed is `42`. Use `--seed` to create a different, repeatable simulation:
+
+```bash
+python 1_generate_dataset.py --seed 42
+python 1_generate_dataset.py --seed 123 --csv /tmp/sales.csv --db /tmp/sales.db
+```
+
+The generator produces 640 rows across 2021–2024, with configured products, regions, channels, prices, costs, marketing spend, and synthetic seasonality. It also creates a `dim_drugs` lookup table.
+
+## SQL analysis
+
+Generate the database first, then run:
+
+```bash
 python 2_sql_analysis.py
+```
+
+The analysis demonstrates aggregations, `NULLIF`-guarded ratios, CTEs, `LAG()` window functions, regional share, channel mix, segment ranking, marketing spend ratios, and launch-period analysis. SQLite connections are scoped with context managers and analytical reads use read-only connections.
+
+## Dashboard
+
+```bash
 streamlit run 3_streamlit_dashboard.py
 ```
 
-## Engineering notes
+Use the sidebar to filter year, region, therapeutic area, and channel. The dashboard includes revenue trends, portfolio comparisons, regional views, seasonality, segment rankings, and a raw filtered-data explorer. Empty filter results are handled with a visible warning.
 
-- SQL is used for business analysis instead of doing every aggregation in Python.
-- The dashboard is separated from data generation and analysis logic.
-- The dataset is explicitly synthetic, so results should be interpreted as demonstration outputs rather than pharmaceutical market facts.
+## Tests and CI
 
-## Future improvements
+Run the local test suite:
 
-- Add automated data-quality checks
-- Add dashboard tests for key metrics
-- Containerize the application
-- Add scheduled data refresh
-- Add role-based dashboard views
+```bash
+python -m pytest -q
+```
 
-## Author
+GitHub Actions runs the tests and both command-line pipeline steps on pushes to `main` and pull requests.
 
-**Pallavi Reddy** — AI & Machine Learning Engineering Student, CBIT
+## Limitations
+
+- All records and relationships are simulated for portfolio analytics practice.
+- The generator's growth, regional, channel, pricing, and seasonal assumptions are illustrative.
+- Revenue-to-marketing-spend is a descriptive ratio, not causal marketing ROI.
+- No clinical, regulatory, patient, prescribing, or actual market data is included.
+- Streamlit visual behavior is not covered by the unit tests; the CLI generation and SQL workflow are covered.
